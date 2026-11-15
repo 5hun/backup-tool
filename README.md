@@ -14,7 +14,7 @@ dotnet run --project Backup.Tests
 ./artifacts/app/Backup.Gui.exe
 ```
 
-配布用フォルダは `artifacts/app` です。7-Zipを含むフォルダ全体を配置してください。配布先では.NET 10 Desktop Runtime（x64）が必要です。開発用画面は `dotnet run --project Backup.Gui` でも起動できます。
+配布用フォルダは `artifacts/app` です（Release、デバッグシンボルなし、win-x64向けのみ）。デバッグ用は `./scripts/publish.ps1 -Configuration Debug` で `artifacts/app-debug` に.pdb付きで出力されます。7-Zipを含むフォルダ全体を配置してください。配布先では.NET 10 Desktop Runtime（x64）が必要です。開発用画面は `dotnet run --project Backup.Gui` でも起動できます。
 
 ## 使い方
 

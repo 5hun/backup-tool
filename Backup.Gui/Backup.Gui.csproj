@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>WinExe</OutputType><UseWPF>true</UseWPF></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Backup.Infrastructure/Backup.Infrastructure.csproj" />
+    <ProjectReference Include="../Backup.Cli/Backup.Cli.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+  <Target Name="CopyCli" AfterTargets="Build">
+    <ItemGroup><CliFiles Include="../Backup.Cli/bin/$(Configuration)/$(TargetFramework)/**/*" /></ItemGroup>
+    <Copy SourceFiles="@(CliFiles)" DestinationFiles="@(CliFiles->'$(OutDir)cli/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

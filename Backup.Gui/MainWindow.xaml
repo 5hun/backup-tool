@@ -1,0 +1,130 @@
+<Window x:Class="Backup.Gui.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="バックアップ管理" Width="1240" Height="850" MinWidth="980" MinHeight="680"
+ Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}" FontFamily="Yu Gothic UI" FontSize="13" Closing="Window_Closing">
+ <DockPanel Margin="8">
+  <StatusBar DockPanel.Dock="Bottom" Margin="0,6,0,0">
+   <StatusBarItem><TextBlock x:Name="StatusText" Text="準備完了" TextWrapping="Wrap"/></StatusBarItem>
+   <StatusBarItem HorizontalAlignment="Right"><ProgressBar x:Name="ProgressBar" Width="160" Height="14" Minimum="0" Maximum="1"/></StatusBarItem>
+  </StatusBar>
+  <TabControl>
+   <TabItem Header="タスク">
+    <Grid Margin="10">
+     <Grid.ColumnDefinitions><ColumnDefinition Width="5*"/><ColumnDefinition Width="6*"/></Grid.ColumnDefinitions>
+     <DockPanel Margin="0,0,14,0">
+      <StackPanel Orientation="Horizontal" DockPanel.Dock="Top">
+       <Button Content="新規" Click="New_Click"/><Button Content="再読込" Click="Refresh_Click"/>
+       <Button x:Name="RunButton" Content="実行" Click="Run_Click"/><Button x:Name="CancelButton" Content="中断" Click="Cancel_Click" IsEnabled="False"/>
+      </StackPanel>
+      <DataGrid x:Name="TasksGrid" SelectionChanged="Tasks_SelectionChanged" Margin="0,8,0,0">
+       <DataGrid.Columns>
+        <DataGridTextColumn Header="名前" Binding="{Binding Name}" Width="*"/>
+        <DataGridTextColumn Header="最終結果" Binding="{Binding LastStatus}" Width="85"/>
+        <DataGridTextColumn Header="最終実行" Binding="{Binding LastRun}" Width="110"/>
+        <DataGridTextColumn Header="次回予定" Binding="{Binding NextRun}" Width="110"/>
+       </DataGrid.Columns>
+       <DataGrid.RowDetailsTemplate><DataTemplate><TextBlock Text="{Binding Destination}" TextWrapping="Wrap" Margin="8"/></DataTemplate></DataGrid.RowDetailsTemplate>
+      </DataGrid>
+     </DockPanel>
+     <DockPanel Grid.Column="1">
+      <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+       <Button x:Name="SaveButton" Content="設定を保存" Click="Save_Click"/><Button x:Name="ScheduleButton" Content="保存してスケジュール反映" Click="Schedule_Click"/>
+      </StackPanel>
+     <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel x:Name="Editor">
+       <TextBlock Text="名前"/><TextBox x:Name="NameBox"/>
+       <TextBlock Text="バックアップ元"/>
+       <DockPanel><Button DockPanel.Dock="Right" Content="選択" Click="SourceBrowse_Click"/><TextBox x:Name="SourceBox"/></DockPanel>
+       <TextBlock Text="保存先（空の専用フォルダ / UNCパス）"/>
+       <DockPanel><Button DockPanel.Dock="Right" Content="選択" Click="DestinationBrowse_Click"/><TextBox x:Name="DestinationBox"/></DockPanel>
+       <GroupBox Header="ZIP圧縮" Margin="0,12,0,8"><StackPanel Margin="8">
+        <TextBlock Text="標準はZIPで保存します。非圧縮にするフォルダは下で指定してください。" TextWrapping="Wrap"/>
+        <TextBlock x:Name="LegacyModeText" Text="この既存タスクは全体を非圧縮で保存します。" Visibility="Collapsed" TextWrapping="Wrap"/>
+        <UniformGrid Columns="2">
+        <StackPanel><TextBlock Text="処理単位の階層（直下 = 1）"/><TextBox x:Name="DepthBox" Text="1"/></StackPanel>
+        <StackPanel><TextBlock Text="ZIP圧縮レベル（0〜9）"/><TextBox x:Name="CompressionBox" Text="1" ToolTip="0: 無圧縮、1: 高速、9: 高圧縮"/></StackPanel>
+        </UniformGrid>
+       </StackPanel></GroupBox>
+       <GroupBox Header="非圧縮で保存するフォルダ（配下も含む）" Margin="0,0,0,8"><StackPanel Margin="8">
+        <TextBlock Text="バックアップ元からの相対パスを1行に1つ指定します。" TextWrapping="Wrap"/>
+        <TextBox x:Name="UncompressedBox" AcceptsReturn="True" Height="90" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"/>
+        <StackPanel Orientation="Horizontal"><Button Content="フォルダを追加…" Click="AddUncompressed_Click"/><Button Content="指定をクリア" Click="ClearUncompressed_Click"/></StackPanel>
+       </StackPanel></GroupBox>
+       <UniformGrid Columns="2">
+        <StackPanel><TextBlock Text="同時処理ユニット数"/><TextBox x:Name="ParallelBox" Text="2"/></StackPanel>
+        <StackPanel><TextBlock Text="Robocopyスレッド数"/><TextBox x:Name="ThreadsBox" Text="8"/></StackPanel>
+       </UniformGrid>
+       <Expander Header="リトライ・ログ設定" Margin="3,10">
+        <UniformGrid Columns="2">
+         <StackPanel><TextBlock Text="ファイル再試行回数"/><TextBox x:Name="FileRetriesBox" Text="3"/></StackPanel>
+         <StackPanel><TextBlock Text="ファイル待機秒数"/><TextBox x:Name="FileWaitBox" Text="10"/></StackPanel>
+         <StackPanel><TextBlock Text="共有アクセス再試行回数"/><TextBox x:Name="NetworkRetriesBox" Text="4"/></StackPanel>
+         <StackPanel><TextBlock Text="共有アクセス初期待機秒数"/><TextBox x:Name="NetworkWaitBox" Text="15"/></StackPanel>
+         <StackPanel><TextBlock Text="ログ保持日数"/><TextBox x:Name="RetentionBox" Text="90"/></StackPanel>
+        </UniformGrid>
+       </Expander>
+       <GroupBox Header="定期実行" Margin="0,8"><StackPanel Margin="8">
+        <TextBlock Text="繰り返し"/>
+        <ComboBox x:Name="FrequencyBox" Margin="3" Padding="5" SelectedIndex="0" SelectionChanged="Frequency_Changed">
+         <ComboBoxItem Content="自動実行しない"/><ComboBoxItem Content="日ごと"/><ComboBoxItem Content="週ごと（曜日指定）"/><ComboBoxItem Content="月ごと（日付・月末指定）"/>
+        </ComboBox>
+        <StackPanel x:Name="ScheduleFields">
+         <TextBlock Text="開始日"/><DatePicker x:Name="StartDatePicker" Margin="3"/>
+         <TextBlock Text="実行時刻（HH:mm、複数はカンマ区切り）"/><TextBox x:Name="TimesBox" Text="02:00"/>
+         <StackPanel x:Name="IntervalPanel"><TextBlock x:Name="IntervalLabel" Text="何日ごとに実行するか"/><TextBox x:Name="IntervalBox" Text="1"/></StackPanel>
+         <GroupBox x:Name="WeekDaysPanel" Header="実行する曜日（複数選択可）" Margin="3,8"><WrapPanel Margin="6">
+          <CheckBox x:Name="MondayBox" Content="月" Margin="4"/><CheckBox x:Name="TuesdayBox" Content="火" Margin="4"/><CheckBox x:Name="WednesdayBox" Content="水" Margin="4"/>
+          <CheckBox x:Name="ThursdayBox" Content="木" Margin="4"/><CheckBox x:Name="FridayBox" Content="金" Margin="4"/><CheckBox x:Name="SaturdayBox" Content="土" Margin="4"/><CheckBox x:Name="SundayBox" Content="日" Margin="4"/>
+         </WrapPanel></GroupBox>
+         <GroupBox x:Name="MonthDaysPanel" Header="毎月の実行日" Margin="3,8"><StackPanel Margin="6">
+          <TextBlock Text="日付（1〜31、複数はカンマ区切り）"/><TextBox x:Name="MonthDaysBox" Text="1"/>
+          <CheckBox x:Name="LastDayBox" Content="月末にも実行する（日付を空欄にすると月末のみ）" Margin="3,8"/>
+          <TextBlock Text="実行月（1〜12、複数はカンマ区切り）"/><TextBox x:Name="MonthsBox" Text="1,2,3,4,5,6,7,8,9,10,11,12"/>
+          <TextBlock Text="存在しない日付の月はスキップします。毎月実行する場合は月末を選択してください。" TextWrapping="Wrap" Margin="3,6"/>
+         </StackPanel></GroupBox>
+        </StackPanel>
+       </StackPanel></GroupBox>
+       <CheckBox x:Name="UnattendedBox" Content="ログオフ中も実行する" Margin="3,8"/>
+       <TextBlock Text="上記を有効にする場合は現在のWindowsアカウントのパスワードを入力" TextWrapping="Wrap"/>
+       <PasswordBox x:Name="PasswordBox" Margin="3" Padding="6"/>
+       <TextBlock Text="既定はログオン中に実行します。どちらもGUIの起動は不要です。" TextWrapping="Wrap" Margin="3,6"/>
+      </StackPanel>
+     </ScrollViewer>
+     </DockPanel>
+    </Grid>
+   </TabItem>
+   <TabItem Header="実行履歴">
+    <Grid Margin="10">
+     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="2*"/><RowDefinition Height="2*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+     <Grid Margin="0,0,0,8">
+      <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+      <TextBlock Text="絞り込み" Margin="0,0,8,0"/>
+      <TextBox x:Name="FilterBox" Grid.Column="1" MinWidth="320" HorizontalAlignment="Stretch" TextChanged="Filter_Changed" ToolTip="タスク名、日付、結果、エラーで絞り込み"/>
+      <Button Grid.Column="2" Content="更新" Click="Refresh_Click"/>
+     </Grid>
+     <DataGrid x:Name="HistoryGrid" Grid.Row="1" SelectionChanged="History_SelectionChanged">
+      <DataGrid.Columns>
+       <DataGridTextColumn Header="開始" Binding="{Binding Started, StringFormat=yyyy/MM/dd HH:mm:ss}" Width="150"/>
+       <DataGridTextColumn Header="タスク" Binding="{Binding Name}" Width="*"/>
+       <DataGridTextColumn Header="結果" Binding="{Binding Status}" Width="95"/>
+       <DataGridTextColumn Header="所要時間" Binding="{Binding Duration}" Width="85"/>
+       <DataGridTextColumn Header="完了" Binding="{Binding Completed}" Width="55"/>
+       <DataGridTextColumn Header="失敗" Binding="{Binding Failed}" Width="55"/>
+       <DataGridTextColumn Header="エラー" Binding="{Binding Error}" Width="2*"/>
+      </DataGrid.Columns>
+     </DataGrid>
+     <DataGrid x:Name="UnitsGrid" Grid.Row="2" Margin="0,10,0,0">
+      <DataGrid.Columns>
+       <DataGridTextColumn Header="ユニット" Binding="{Binding Key}" Width="*"/>
+       <DataGridTextColumn Header="結果" Binding="{Binding Status}" Width="100"/>
+       <DataGridTextColumn Header="ファイル数" Binding="{Binding Files}" Width="80"/>
+       <DataGridTextColumn Header="開始" Binding="{Binding Started, StringFormat=HH:mm:ss}" Width="75"/>
+       <DataGridTextColumn Header="終了" Binding="{Binding Finished, StringFormat=HH:mm:ss}" Width="75"/>
+       <DataGridTextColumn Header="エラー" Binding="{Binding Error}" Width="2*"/>
+      </DataGrid.Columns>
+     </DataGrid>
+     <StackPanel Grid.Row="3" Orientation="Horizontal"><Button Content="実行ログを開く" Click="OpenRunLog_Click"/><Button Content="ユニットログを開く" Click="OpenUnitLog_Click"/><Button Content="ログフォルダを開く" Click="OpenLogFolder_Click"/></StackPanel>
+    </Grid>
+   </TabItem>
+  </TabControl>
+ </DockPanel>
+</Window>
